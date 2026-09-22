@@ -26,17 +26,23 @@ dotnet run --project .\AltTapHold.Tests -c Release
 ## 配布用 exe
 
 ```powershell
-dotnet publish .\AltTapHold\AltTapHold.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o .\publish\AltTapHold-win-x64
-dotnet publish .\AltTapHold\AltTapHold.csproj -c Release -r win-x86 --self-contained true -p:PublishSingleFile=true -o .\publish\AltTapHold-win-x86
+dotnet publish .\AltTapHold\AltTapHold.csproj -c Release -r win-x64 --self-contained false -o "$env:USERPROFILE\Desktop\AltTapHold-win-x64"
+dotnet publish .\AltTapHold\AltTapHold.csproj -c Release -r win-x86 --self-contained false -o "$env:USERPROFILE\Desktop\AltTapHold-win-x86"
 ```
 
-それぞれの出力フォルダー名でアーキテクチャを区別します。exe 起動後は通知領域の `Alt Tap-Hold` を右クリックし、`終了` で停止します。二重起動は同一ユーザーセッション内の名前付き mutex で防ぎます。
+それぞれの出力フォルダー名でアーキテクチャを区別します。`\\wsl.localhost\...` のような WSL 共有内の exe は Windows から直接実行しません。必ず上記のような Windows ローカルドライブ上の出力を起動してください。exe 起動後は通知領域の `Alt Tap-Hold` を右クリックし、`終了` で停止します。二重起動は同一ユーザーセッション内の名前付き mutex で防ぎます。
+
+これはフレームワーク依存型の配布です。実行する Windows に .NET 8 Desktop Runtime（SDK を入れている場合はすでに含まれます）が必要ですが、配布物は非常に小さくなり、ランタイムのセキュリティ更新も OS 側の .NET 更新で受け取れます。ランタイム未導入の PC へ単体で渡す場合だけ、`--self-contained true -p:PublishSingleFile=true` を指定した自己完結型を使います。
 
 ## 調整と安全策
 
 [`AltStateMachine.cs`](AltTapHold/AltStateMachine.cs) の `TapThresholdMs`（現在 150）と `MaximumHoldMs`（現在 5000）が調整箇所です。5 秒に達した記録は破棄され、Active の Alt だけは up を送ります。送信が失敗した場合は Alt up だけを小さな解放待ちとして再試行し、成功するまで物理入力を抑止しません。
 
 ロック／解除通知や、Alt 以外のキーの押下履歴は保持しません。強制終了、OS 停止、UIPI による注入拒否では押しっぱなしの完全な回復は保証できません。
+
+## アイコン
+
+EXE と通知領域には、[`Assets/AltTapHold.ico`](Assets/AltTapHold.ico) を使います。透明背景、白い外縁の濃紺キーキャップ、左の青緑と右の橙の矢印で構成し、ライト／ダーク モードの双方で視認できるようにしています。元のベクター図は [`Assets/AltTapHold.svg`](Assets/AltTapHold.svg) で、`powershell -ExecutionPolicy Bypass -File .\tools\GenerateIcons.ps1` により ICO を再生成できます。
 
 ## 検証記録
 
